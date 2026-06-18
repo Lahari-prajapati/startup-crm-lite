@@ -1,47 +1,32 @@
-import React, { useState, useEffect } from 'react';
-import { Search, Plus, LayoutGrid, List, X, Sparkles } from 'lucide-react';
+import { useEffect, useState } from 'react';
+import { Plus, LayoutGrid, List, X } from 'lucide-react';
 import toast from 'react-hot-toast';
 
-import StatusBadge from '../components/leads/StatusBadge';
+import { useLeads } from '../context/LeadContext';
 import LeadForm from '../components/leads/LeadForm';
 import LeadCard from '../components/leads/LeadCard';
 import LeadTable from '../components/leads/LeadTable';
+import SearchBar from '../components/common/SearchBar';
+import FilterBar from '../components/common/FilterBar';
+import EmptyState from '../components/common/EmptyState';
 
 /**
  * Leads component provides the Lead Management dashboard CRUD workspace.
- * Manages full create, read, update, delete interactions and filter lists.
+ * Consumes the global LeadContext for all lead data and CRUD operations.
  *
  * @returns {React.JSX.Element} The rendered leads workspace view.
  */
 export default function Leads() {
-  // Mock dataset initialized in component state
-  const [leads, setLeads] = useState([
-    { id: 1, name: 'Alice Vance', company: 'NovaTech Solutions', email: 'alice@novatech.io', phone: '+1 (555) 019-2834', status: 'New', source: 'Website', dateAdded: '2026-06-15' },
-    { id: 2, name: 'Bob Sterling', company: 'Apex Global', email: 'bob@apexglobal.co', phone: '+1 (555) 014-9218', status: 'Contacted', source: 'LinkedIn', dateAdded: '2026-06-12' },
-    { id: 3, name: 'Clara Oswald', company: 'Chronos Inc', email: 'clara@chronos.org', phone: '+1 (555) 017-3849', status: 'Proposal Sent', source: 'Referral', dateAdded: '2026-06-16' },
-    { id: 4, name: 'David Miller', company: 'Quantum Labs', email: 'david@quantumlabs.dev', phone: '+1 (555) 011-8293', status: 'Won', source: 'Cold Call', dateAdded: '2026-06-10' },
-    { id: 5, name: 'Eva Green', company: 'Vertigo Media', email: 'eva@vertigo.media', phone: '+1 (555) 016-4720', status: 'Contacted', source: 'Email Campaign', dateAdded: '2026-06-14' },
-  ]);
+  const { leads, addLead, updateLead, deleteLead } = useLeads();
 
   // Modal and CRUD selected items
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedLead, setSelectedLead] = useState(null);
 
-  // Search and view toggles
+  // Search, filter, and view mode state
   const [searchQuery, setSearchQuery] = useState('');
-  const [activeTab, setActiveTab] = useState('All');
+  const [activeFilter, setActiveFilter] = useState('All');
   const [viewMode, setViewMode] = useState('table'); // 'table' or 'card'
-
-  // Sync keyboard escape key event for accessibility
-  useEffect(() => {
-    const handleKeyDown = (e) => {
-      if (e.key === 'Escape' && isModalOpen) {
-        handleCloseModal();
-      }
-    };
-    window.addEventListener('keydown', handleKeyDown);
-    return () => window.removeEventListener('keydown', handleKeyDown);
-  }, [isModalOpen]);
 
   // Modal handlers
   const handleOpenCreateModal = () => {
@@ -59,39 +44,45 @@ export default function Leads() {
     setIsModalOpen(false);
   };
 
-  // Create or Update Form submit handler
+  // Sync keyboard escape key event for accessibility
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if (e.key === 'Escape' && isModalOpen) {
+        handleCloseModal();
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, [isModalOpen]);
+
+  /**
+   * Creates or updates a lead from submitted form data.
+   *
+   * @param {object} formData - The form values from LeadForm.
+   * @returns {void}
+   */
   const handleFormSubmit = (formData) => {
     if (selectedLead) {
-      // Edit mode: Update existing entry in state
-      setLeads((prevLeads) =>
-        prevLeads.map((lead) =>
-          lead.id === selectedLead.id
-            ? { ...lead, ...formData }
-            : lead
-        )
-      );
+      updateLead(selectedLead.id, formData);
       toast.success('Lead updated successfully!');
     } else {
-      // Create mode: Append new entry to top
-      const newLead = {
-        id: Date.now(), // Generate a unique numeric identifier
-        ...formData,
-        dateAdded: new Date().toISOString().slice(0, 10),
-      };
-      setLeads((prevLeads) => [newLead, ...prevLeads]);
+      addLead(formData);
       toast.success('Lead created successfully!');
     }
     handleCloseModal();
   };
 
-  // Delete lead handler
+  /**
+   * Deletes a lead and shows a confirmation toast.
+   *
+   * @param {string} id - Lead id to remove.
+   * @returns {void}
+   */
   const handleDeleteLead = (id) => {
     const leadToDelete = leads.find((l) => l.id === id);
-    setLeads((prevLeads) => prevLeads.filter((lead) => lead.id !== id));
-    
-    // Customize red delete notification toast
+    deleteLead(id);
+
     toast.error(`Deleted lead for ${leadToDelete ? leadToDelete.name : 'client'}`, {
-      icon: '🗑️',
       style: {
         border: '1px solid #EF4444',
         padding: '12px',
@@ -101,19 +92,23 @@ export default function Leads() {
     });
   };
 
-  // Filter list based on search term and active status tab
-  const filteredLeads = leads.filter((lead) => {
-    const matchesSearch =
-      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
-      lead.company.toLowerCase().includes(searchQuery.toLowerCase());
-    
-    const matchesTab = activeTab === 'All' || lead.status === activeTab;
-    
-    return matchesSearch && matchesTab;
-  });
+  // Reset all search and filter state to defaults
+  const handleClearFilters = () => {
+    setSearchQuery('');
+    setActiveFilter('All');
+  };
 
-  // Filter tabs mapped from required status categories
-  const filterTabs = ['All', 'New', 'Contacted', 'Meeting Scheduled', 'Proposal Sent', 'Won', 'Lost'];
+  // Derived: leads filtered by active status tab AND search query
+  const filteredLeads = leads
+    .filter((lead) => activeFilter === 'All' || lead.status === activeFilter)
+    .filter((lead) =>
+      lead.name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.company.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      lead.email.toLowerCase().includes(searchQuery.toLowerCase())
+    );
+
+  // True when any filter or search query is active
+  const hasFiltersActive = activeFilter !== 'All' || searchQuery.trim() !== '';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -136,72 +131,62 @@ export default function Leads() {
         </button>
       </div>
 
-      {/* Control panel: search bar, status tabs, and view mode toggle buttons */}
+      {/* Control panel: SearchBar, FilterBar, and view mode toggle */}
       <div className="mb-6 rounded-2xl border border-slate-100 bg-white p-4 shadow-sm dark:border-slate-800/80 dark:bg-slate-950">
-        <div className="flex flex-col gap-4 lg:flex-row lg:items-center lg:justify-between">
-          {/* Search bar input container */}
-          <div className="relative flex-1">
-            <Search className="absolute top-1/2 left-4 h-4 w-4 -translate-y-1/2 text-slate-400" aria-hidden="true" />
-            <input
-              type="text"
-              placeholder="Search leads by name or company..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="w-full rounded-xl border border-slate-200 bg-slate-50/50 py-2.5 pr-4 pl-11 text-sm text-slate-900 transition-all placeholder:text-slate-400 focus:border-primary focus:bg-white focus:outline-none focus:ring-2 focus:ring-primary/20 dark:border-slate-800 dark:bg-slate-900 dark:text-white dark:focus:border-primary"
-            />
-          </div>
+        {/* Top row: Search + View toggle */}
+        <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
+          <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-          <div className="flex flex-wrap items-center gap-3">
-            {/* Filtering status tabs */}
-            <div className="flex flex-wrap gap-1">
-              {filterTabs.map((tab) => (
-                <button
-                  key={tab}
-                  onClick={() => setActiveTab(tab)}
-                  className={`rounded-lg px-3 py-1.5 text-xs font-bold transition-all cursor-pointer ${
-                    activeTab === tab
-                      ? 'bg-primary text-white shadow-sm shadow-primary/10'
-                      : 'text-slate-550 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900 dark:hover:text-slate-205'
-                  }`}
-                >
-                  {tab}
-                </button>
-              ))}
-            </div>
-
-            {/* Layout representation Toggler (Card vs Table) */}
-            <div className="flex rounded-xl bg-slate-50 p-1 dark:bg-slate-900 border border-slate-100 dark:border-slate-850">
-              <button
-                onClick={() => setViewMode('card')}
-                className={`rounded-lg p-1.5 transition-all cursor-pointer ${
-                  viewMode === 'card'
-                    ? 'bg-white text-primary shadow-xs dark:bg-slate-800'
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                }`}
-                title="Grid Card View"
-                aria-label="Toggle grid card layout"
-              >
-                <LayoutGrid className="h-4.5 w-4.5" />
-              </button>
-              <button
-                onClick={() => setViewMode('table')}
-                className={`rounded-lg p-1.5 transition-all cursor-pointer ${
-                  viewMode === 'table'
-                    ? 'bg-white text-primary shadow-xs dark:bg-slate-800'
-                    : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
-                }`}
-                title="Table List View"
-                aria-label="Toggle list table layout"
-              >
-                <List className="h-4.5 w-4.5" />
-              </button>
-            </div>
+          {/* Layout representation Toggler (Card vs Table) */}
+          <div className="flex shrink-0 rounded-xl bg-slate-50 p-1 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => setViewMode('card')}
+              className={`rounded-lg p-1.5 transition-all cursor-pointer ${
+                viewMode === 'card'
+                  ? 'bg-white text-primary shadow-xs dark:bg-slate-800'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+              title="Grid Card View"
+              aria-label="Toggle grid card layout"
+            >
+              <LayoutGrid className="h-4.5 w-4.5" />
+            </button>
+            <button
+              onClick={() => setViewMode('table')}
+              className={`rounded-lg p-1.5 transition-all cursor-pointer ${
+                viewMode === 'table'
+                  ? 'bg-white text-primary shadow-xs dark:bg-slate-800'
+                  : 'text-slate-400 hover:text-slate-600 dark:hover:text-slate-300'
+              }`}
+              title="Table List View"
+              aria-label="Toggle list table layout"
+            >
+              <List className="h-4.5 w-4.5" />
+            </button>
           </div>
+        </div>
+
+        {/* Bottom row: FilterBar */}
+        <div className="mt-3 pt-3 border-t border-slate-100 dark:border-slate-800">
+          <FilterBar
+            activeFilter={activeFilter}
+            onFilterChange={setActiveFilter}
+            leads={leads}
+          />
         </div>
       </div>
 
       {/* Leads listing area */}
-      {viewMode === 'table' ? (
+      {filteredLeads.length === 0 ? (
+        /* Empty state shown for both zero total leads and zero filtered results */
+        <div className="rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-950">
+          <EmptyState
+            totalLeadsCount={leads.length}
+            hasFiltersActive={hasFiltersActive}
+            onClearFilters={handleClearFilters}
+          />
+        </div>
+      ) : viewMode === 'table' ? (
         <>
           {/* Table view is hidden on mobile layout */}
           <div className="hidden md:block">
@@ -214,46 +199,28 @@ export default function Leads() {
           {/* Card view stacks naturally on mobile layout */}
           <div className="block md:hidden">
             <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {filteredLeads.length > 0 ? (
-                filteredLeads.map((lead) => (
-                  <LeadCard
-                    key={lead.id}
-                    lead={lead}
-                    onEdit={handleOpenEditModal}
-                    onDelete={handleDeleteLead}
-                  />
-                ))
-              ) : (
-                <div className="col-span-full py-12 text-center text-slate-400 dark:text-slate-500">
-                  <div className="flex flex-col items-center justify-center gap-2">
-                    <Sparkles className="h-6 w-6 text-slate-300" aria-hidden="true" />
-                    <span>No leads match search conditions.</span>
-                  </div>
-                </div>
-              )}
+              {filteredLeads.map((lead) => (
+                <LeadCard
+                  key={lead.id}
+                  lead={lead}
+                  onEdit={handleOpenEditModal}
+                  onDelete={handleDeleteLead}
+                />
+              ))}
             </div>
           </div>
         </>
       ) : (
         /* Full Grid Layout for Card view mode */
         <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredLeads.length > 0 ? (
-            filteredLeads.map((lead) => (
-              <LeadCard
-                key={lead.id}
-                lead={lead}
-                onEdit={handleOpenEditModal}
-                onDelete={handleDeleteLead}
-              />
-            ))
-          ) : (
-            <div className="col-span-full py-12 text-center text-slate-400 dark:text-slate-500">
-              <div className="flex flex-col items-center justify-center gap-2">
-                <Sparkles className="h-6 w-6 text-slate-300" aria-hidden="true" />
-                <span>No leads match search conditions.</span>
-              </div>
-            </div>
-          )}
+          {filteredLeads.map((lead) => (
+            <LeadCard
+              key={lead.id}
+              lead={lead}
+              onEdit={handleOpenEditModal}
+              onDelete={handleDeleteLead}
+            />
+          ))}
         </div>
       )}
 

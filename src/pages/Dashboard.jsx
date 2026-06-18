@@ -1,8 +1,8 @@
-import React from 'react';
 import { useNavigate } from 'react-router-dom';
 import toast from 'react-hot-toast';
 import { Users, DollarSign, TrendingUp, Briefcase } from 'lucide-react';
 
+import { useLeads } from '../context/LeadContext';
 import StatsCard from '../components/dashboard/StatsCard';
 import PipelineOverview from '../components/dashboard/PipelineOverview';
 import RecentLeads from '../components/dashboard/RecentLeads';
@@ -16,19 +16,51 @@ import QuickActions from '../components/dashboard/QuickActions';
  */
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { leads } = useLeads();
 
-  // Mock leads dataset representing typical startup client opportunities.
-  // Real data will integrate dynamically in Phase 8.
-  const sampleLeads = [
-    { id: 1, name: 'Alice Vance', company: 'NovaTech Solutions', email: 'alice@novatech.io', status: 'New', value: '$12,000', dateAdded: '2026-06-15' },
-    { id: 2, name: 'Bob Sterling', company: 'Apex Global', email: 'bob@apexglobal.co', status: 'Contacted', value: '$8,500', dateAdded: '2026-06-12' },
-    { id: 3, name: 'Clara Oswald', company: 'Chronos Inc', email: 'clara@chronos.org', status: 'Proposal', value: '$19,800', dateAdded: '2026-06-16' },
-    { id: 4, name: 'David Miller', company: 'Quantum Labs', email: 'david@quantumlabs.dev', status: 'Closed', value: '$5,000', dateAdded: '2026-06-10' },
-    { id: 5, name: 'Eva Green', company: 'Vertigo Media', email: 'eva@vertigo.media', status: 'Contacted', value: '$14,200', dateAdded: '2026-06-14' },
-    { id: 6, name: 'Frank Wright', company: 'Solaria Energy', email: 'frank@solaria.com', status: 'New', value: '$22,000', dateAdded: '2026-06-13' },
-    { id: 7, name: 'Grace Hopper', company: 'Cobol Corp', email: 'grace@cobol.org', status: 'Closed', value: '$35,000', dateAdded: '2026-06-08' },
-    { id: 8, name: 'Henry Cavill', company: 'Steel Dynamics', email: 'henry@steel.co', status: 'Proposal', value: '$27,500', dateAdded: '2026-06-11' },
-  ];
+  /**
+   * Maps the context lead shape to the shape expected by the dashboard
+   * sub-components (RecentLeads, PipelineOverview).
+   *
+   * Context leads use `createdAt` and granular statuses ('Proposal Sent',
+   * 'Won', 'Lost') while the dashboard widgets expect `dateAdded` and
+   * coarser statuses ('Proposal', 'Closed').
+   *
+   * @param {import('../context/LeadContext').Lead} lead
+   * @returns {object} Dashboard-shaped lead.
+   */
+  const toDashboardLead = (lead) => {
+    // Map pipeline statuses to the coarser dashboard categories
+    let dashboardStatus;
+    switch (lead.status) {
+      case 'New':
+        dashboardStatus = 'New';
+        break;
+      case 'Contacted':
+      case 'Meeting Scheduled':
+        dashboardStatus = 'Contacted';
+        break;
+      case 'Proposal Sent':
+        dashboardStatus = 'Proposal';
+        break;
+      case 'Won':
+      case 'Lost':
+        dashboardStatus = 'Closed';
+        break;
+      default:
+        dashboardStatus = lead.status;
+    }
+
+    return {
+      ...lead,
+      dateAdded: lead.createdAt ? lead.createdAt.slice(0, 10) : lead.dateAdded,
+      status: dashboardStatus,
+      value: lead.value || '$0',
+    };
+  };
+
+  /** Dashboard-shaped leads for sub-components */
+  const dashboardLeads = leads.map(toDashboardLead);
 
   // Callback handlers for QuickActions component
   const handleAddLead = () => {
@@ -43,14 +75,14 @@ export default function Dashboard() {
   const handleExport = () => {
     // Generate simple mock CSV export file and trigger browser download
     try {
-      const headers = 'ID,Name,Company,Email,Status,Value,Date Added\n';
-      const rows = sampleLeads
+      const headers = 'ID,Name,Company,Email,Status,Source,Created At\n';
+      const rows = leads
         .map(
           (lead) =>
-            `${lead.id},"${lead.name}","${lead.company}","${lead.email}","${lead.status}","${lead.value}",${lead.dateAdded}`
+            `${lead.id},"${lead.name}","${lead.company}","${lead.email}","${lead.status}","${lead.source}",${lead.createdAt}`
         )
         .join('\n');
-      
+
       const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
@@ -59,7 +91,7 @@ export default function Dashboard() {
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       toast.success('CSV Data exported successfully!');
     } catch (error) {
       toast.error('Failed to export leads data.');
@@ -67,21 +99,28 @@ export default function Dashboard() {
     }
   };
 
-  // Compute metrics from sample leads
-  const activeLeadsCount = sampleLeads.length;
-  
-  // Calculate total pipeline value (ignoring non-numeric currency characters)
-  const totalPipelineValue = sampleLeads.reduce((acc, lead) => {
-    const numericValue = parseFloat(lead.value.replace(/[^0-9.]/g, '')) || 0;
+  // Compute metrics from context leads
+  const activeLeadsCount = leads.length;
+  const closedLeadsCount = leads.filter((l) => l.status === 'Won' || l.status === 'Lost').length;
+
+  // Calculate total pipeline value (leads without a value field get $0)
+  const totalPipelineValue = leads.reduce((acc, lead) => {
+    if (!lead.value) return acc;
+    const numericValue = parseFloat(String(lead.value).replace(/[^0-9.]/g, '')) || 0;
     return acc + numericValue;
   }, 0);
-  
+
   // Format total pipeline value as currency format
   const formattedPipelineValue = new Intl.NumberFormat('en-US', {
     style: 'currency',
     currency: 'USD',
     maximumFractionDigits: 0
   }).format(totalPipelineValue);
+
+  // Conversion rate: closed / total (guard against zero)
+  const conversionRate = activeLeadsCount > 0
+    ? ((closedLeadsCount / activeLeadsCount) * 100).toFixed(1)
+    : '0.0';
 
   return (
     <div className="mx-auto max-w-7xl px-4 py-8 sm:px-6 lg:px-8">
@@ -115,14 +154,14 @@ export default function Dashboard() {
         />
         <StatsCard
           title="Conversion Rate"
-          value="24.3%"
+          value={`${conversionRate}%`}
           icon={TrendingUp}
           change={1.8}
           color="warning"
         />
         <StatsCard
           title="Active Opportunities"
-          value={sampleLeads.filter(l => l.status !== 'Closed').length}
+          value={leads.filter(l => l.status !== 'Won' && l.status !== 'Lost').length}
           icon={Briefcase}
           change={-2.4}
           color="danger"
@@ -133,10 +172,10 @@ export default function Dashboard() {
       <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
         <div className="lg:col-span-2 flex flex-col gap-8">
           {/* Horizontal Segmented Pipeline representation */}
-          <PipelineOverview leads={sampleLeads} />
+          <PipelineOverview leads={dashboardLeads} />
 
           {/* Tabular summary list of recent leads */}
-          <RecentLeads leads={sampleLeads} />
+          <RecentLeads leads={dashboardLeads} />
         </div>
 
         <div className="lg:col-span-1">
