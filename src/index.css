@@ -1,9 +1,22 @@
 @import url('https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100..900;1,100..900&display=swap');
 @import "tailwindcss";
 
-@theme{
-    --font-roboto: "Roboto",sans-serif;
-    --color-primary: #2563EB;
+@custom-variant dark (&:is(.dark *));
+
+@layer base {
+
+  *,
+  ::before,
+  ::after {
+    transition-property: color, background-color, text-decoration-color, fill, stroke;
+    transition-timing-function: cubic-bezier(0.2, 0, 0.1, 0.5);
+    transition-duration: 300ms;
+  }
+}
+
+@theme {
+  --font-roboto: "Roboto", sans-serif;
+  --color-primary: #2563EB;
   --color-success: #22C55E;
   --color-warning: #F59E0B;
   --color-danger: #EF4444;

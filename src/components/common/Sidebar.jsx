@@ -1,93 +1,121 @@
-import { NavLink } from 'react-router-dom'; // Import NavLink to enable vertical navigation links with active routing indicators.
-import { LayoutDashboard, Users, BarChart3, Rocket, LogOut, User } from 'lucide-react'; // Import icons from Lucide for branding and navigation links.
+import { NavLink } from 'react-router-dom';
+import { LayoutDashboard, Users, BarChart3, Rocket, LogOut, User } from 'lucide-react';
+import LightModeToggle from './LightModeToggle';
 
 /**
- * Sidebar component provides primary left-aligned application navigation.
- * Renders a sticky vertical navigation menu with user profiles and actions.
+ * Sidebar component provides primary navigation.
+ * Responsive behavior:
+ * - Mobile (< md): Bottom navigation bar with icons only.
+ * - Tablet (md): Left sidebar (w-20) with compact icons/labels.
+ * - Desktop (lg): Left sidebar (w-64) with full labels.
+ *
+ * @returns {React.JSX.Element} Responsive navigation container.
  */
 function Sidebar() {
-  // Navigation tabs configuration array.
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard }, // Path to Dashboard page.
-    { path: '/leads', label: 'Leads', icon: Users }, // Path to Leads management.
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 }, // Path to Analytics view.
+    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
+    { path: '/leads', label: 'Leads', icon: Users },
+    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
   ];
 
   return (
-    // Sidebar wrapper: fixed height viewport, borders on the right, glassmorphism dark-mode ready style.
-    <aside className="fixed inset-y-0 left-0 z-40 flex h-screen w-16 flex-col justify-between border-r border-slate-25/90 bg-white shadow-sm transition-all duration-300 sm:w-64 dark:border-slate-800 dark:bg-slate-950">
+    <aside className="fixed z-40 bg-white transition-all duration-300 dark:bg-slate-950 
+                      bottom-0 inset-x-0 flex h-20 flex-row items-center justify-around border-t border-slate-200/90 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]
+                      md:inset-y-0 md:left-0 md:h-screen md:w-20 md:flex-col md:justify-between md:border-r md:border-t-0 md:shadow-sm
+                      lg:w-64 dark:border-slate-800">
       
-      {/* Top half container grouping the logo and vertical items */}
-      <div className="flex flex-col gap-8 px-3 py-6 sm:px-4">
+      {/* Top half (Desktop/Tablet) or Hidden (Mobile) */}
+      <div className="hidden flex-col gap-8 px-3 py-6 md:flex lg:px-4">
         
         {/* Brand logo banner section */}
-        <div className="flex items-center gap-3 px-1 sm:px-2">
-          {/* Brand icon with glowing blue tint */}
-          <Rocket className="h-6 w-6 text-blue-600 dark:text-blue-500" />
-          {/* Responsive Brand Text - hidden on mobile viewports */}
-          <span className="hidden text-lg font-bold tracking-tight text-slate-900 sm:inline dark:text-white">
+        <div className="flex items-center justify-center gap-3 px-1 lg:justify-start lg:px-2">
+          <Rocket className="h-7 w-7 text-blue-600 dark:text-blue-500 shrink-0" />
+          <span className="hidden text-xl font-extrabold tracking-tight text-slate-900 lg:inline dark:text-white">
             CRM<span className="text-blue-600 dark:text-blue-500">Lite</span>
           </span>
         </div>
 
-        {/* Navigation group container */}
-        <nav className="flex flex-col gap-1.5">
+        {/* Navigation group container (Desktop/Tablet) */}
+        <nav className="flex flex-col gap-2">
           {navItems.map((item) => {
-            // Dynamically evaluate target icon.
             const Icon = item.icon;
-            
             return (
-              // Navigation Link component.
               <NavLink
-                key={item.path} // Unique react mapping key.
-                to={item.path} // Route navigation target.
-                // Dynamic styling logic based on current route.
+                key={`desk-${item.path}`}
+                to={item.path}
                 className={({ isActive }) =>
-                  `flex items-center gap-3 rounded-xl py-3.5 transition-all duration-200 sm:px-4 justify-center sm:justify-start ${
+                  `flex flex-col items-center justify-center gap-1.5 rounded-xl py-3 transition-all duration-200 lg:flex-row lg:justify-start lg:px-4 lg:py-3.5 ${
                     isActive
-                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400' // Highlight color sets for selected route.
-                      : 'text-slate-600 hover:bg-slate-50 hover:text-slate-950 dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-slate-100' // Idle items colors.
+                      ? 'bg-blue-50 text-blue-600 dark:bg-blue-950/50 dark:text-blue-400'
+                      : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-slate-100'
                   }`
                 }
               >
-                {/* Visual Icon */}
-                <Icon className="h-5 w-5 shrink-0" />
-                {/* Responsive Navigation label text */}
-                <span className="hidden text-sm font-semibold sm:inline">{item.label}</span>
+                <Icon className="h-5.5 w-5.5 shrink-0" />
+                <span className="text-[10px] font-bold lg:text-sm">{item.label}</span>
               </NavLink>
             );
           })}
         </nav>
       </div>
 
-      {/* Bottom section: user profile summary and system logout action */}
-      <div className="border-t border-slate-100 p-3 sm:p-4 dark:border-slate-900">
+      {/* Navigation group container (Mobile Bottom Bar) */}
+      <nav className="flex w-full flex-row items-center justify-around px-2 pb-2 pt-1 md:hidden">
+        {navItems.map((item) => {
+          const Icon = item.icon;
+          return (
+            <NavLink
+              key={`mob-${item.path}`}
+              to={item.path}
+              className={({ isActive }) =>
+                `flex min-h-[44px] min-w-[64px] flex-col items-center justify-center gap-1 rounded-2xl p-2 transition-all duration-200 ${
+                  isActive
+                    ? 'text-blue-600 dark:text-blue-400'
+                    : 'text-slate-500 hover:bg-slate-50 hover:text-slate-900 dark:text-slate-400 dark:hover:bg-slate-900/60 dark:hover:text-slate-100'
+                }`
+              }
+            >
+              {({ isActive }) => (
+                <>
+                  <div className={`flex h-8 w-14 items-center justify-center rounded-full transition-colors ${isActive ? 'bg-blue-100/60 dark:bg-blue-900/40' : ''}`}>
+                    <Icon className="h-5 w-5" strokeWidth={isActive ? 2.5 : 2} />
+                  </div>
+                  {/* Text hidden on mobile as per requirement "icons only" but we can show tiny label if active for UX. Let's strictly follow requirement: icons only. Wait, material design shows text, but prompt says "Mobile: bottom navigation bar with icons only". I will stick to icons only to perfectly match requirements. */}
+                </>
+              )}
+            </NavLink>
+          );
+        })}
+      </nav>
+
+      {/* Bottom section: user profile summary, theme toggle, and system logout action (Hidden on Mobile) */}
+      <div className="hidden flex-col gap-2 border-t border-slate-100 p-3 md:flex lg:p-4 dark:border-slate-900">
         
+        {/* Theme Toggle Container */}
+        <div className="mb-2 flex justify-center lg:justify-start lg:px-2">
+          <LightModeToggle />
+        </div>
+
         {/* Profile Card details flex */}
-        <div className="flex items-center justify-between">
+        <div className="flex items-center justify-center lg:justify-between">
           <div className="flex items-center gap-3">
-            {/* User Circle indicator */}
             <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-slate-100 text-slate-650 dark:bg-slate-900 dark:text-slate-400">
-              <User className="h-4 w-4" />
+              <User className="h-4.5 w-4.5" />
             </div>
-            {/* User details labels - hidden on mobile */}
-            <div className="hidden flex-col sm:flex">
-              <span className="text-xs font-bold text-slate-900 dark:text-white">Alex Johnson</span>
-              <span className="text-[10px] text-slate-400">Founder</span>
+            <div className="hidden flex-col lg:flex">
+              <span className="text-sm font-bold text-slate-900 dark:text-white">Alex Johnson</span>
+              <span className="text-xs font-medium text-slate-400">Founder</span>
             </div>
           </div>
           
-          {/* Logout Action trigger button */}
-          <button className="hidden rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-red-500 sm:inline dark:hover:bg-slate-900">
-            <LogOut className="h-4.5 w-4.5" />
+          <button className="hidden rounded-lg p-2 text-slate-400 transition-colors hover:bg-red-50 hover:text-red-500 lg:inline-flex dark:hover:bg-red-950/30 dark:hover:text-red-400" aria-label="Log Out">
+            <LogOut className="h-5 w-5" />
           </button>
         </div>
-
       </div>
 
     </aside>
   );
 }
 
-// Export the Sidebar component as the default export.
 export default Sidebar;

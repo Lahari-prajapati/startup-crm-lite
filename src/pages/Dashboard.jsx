@@ -137,7 +137,7 @@ export default function Dashboard() {
       </div>
 
       {/* KPI Cards Grid - Responsive columns: 1 on mobile, 2 on tablet, 4 on desktop */}
-      <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-4">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4">
         <StatsCard
           title="Total Leads"
           value={activeLeadsCount}
@@ -169,13 +169,18 @@ export default function Dashboard() {
       </div>
 
       {/* Split section - Main components left, side control panel on the right */}
-      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3">
-        <div className="lg:col-span-2 flex flex-col gap-8">
+      <div className="mt-8 grid grid-cols-1 gap-8 lg:grid-cols-3 xl:grid-cols-4">
+        {/* Charts Section: Full width on tablet, 2 columns on desktop */}
+        <div className="grid grid-cols-1 gap-8 lg:col-span-2 xl:col-span-3 xl:grid-cols-2">
           {/* Horizontal Segmented Pipeline representation */}
-          <PipelineOverview leads={dashboardLeads} />
+          <div className="flex w-full flex-col">
+             <PipelineOverview leads={dashboardLeads} />
+          </div>
 
           {/* Tabular summary list of recent leads */}
-          <RecentLeads leads={dashboardLeads} />
+          <div className="flex w-full flex-col">
+             <RecentLeads leads={dashboardLeads} />
+          </div>
         </div>
 
         <div className="lg:col-span-1">

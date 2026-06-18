@@ -137,8 +137,8 @@ export default function Leads() {
         <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
           <SearchBar value={searchQuery} onChange={setSearchQuery} />
 
-          {/* Layout representation Toggler (Card vs Table) */}
-          <div className="flex shrink-0 rounded-xl bg-slate-50 p-1 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+          {/* Layout representation Toggler (Card vs Table) - Only visible on Tablet */}
+          <div className="hidden md:flex lg:hidden shrink-0 rounded-xl bg-slate-50 p-1 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
             <button
               onClick={() => setViewMode('card')}
               className={`rounded-lg p-1.5 transition-all cursor-pointer ${
@@ -178,7 +178,6 @@ export default function Leads() {
 
       {/* Leads listing area */}
       {filteredLeads.length === 0 ? (
-        /* Empty state shown for both zero total leads and zero filtered results */
         <div className="rounded-2xl border border-slate-100 bg-white shadow-sm dark:border-slate-800/80 dark:bg-slate-950">
           <EmptyState
             totalLeadsCount={leads.length}
@@ -186,42 +185,29 @@ export default function Leads() {
             onClearFilters={handleClearFilters}
           />
         </div>
-      ) : viewMode === 'table' ? (
+      ) : (
         <>
-          {/* Table view is hidden on mobile layout */}
-          <div className="hidden md:block">
+          {/* Card View - Always visible on Mobile, optionally visible on Tablet if toggled, hidden on Desktop */}
+          <div className={`grid grid-cols-1 gap-6 sm:grid-cols-2 lg:hidden ${viewMode === 'table' ? 'md:hidden' : ''}`}>
+            {filteredLeads.map((lead) => (
+              <LeadCard
+                key={lead.id}
+                lead={lead}
+                onEdit={handleOpenEditModal}
+                onDelete={handleDeleteLead}
+              />
+            ))}
+          </div>
+
+          {/* Table View - Hidden on Mobile, optionally visible on Tablet if toggled, always visible on Desktop */}
+          <div className={`hidden lg:block ${viewMode === 'table' ? 'md:block' : ''}`}>
             <LeadTable
               leads={filteredLeads}
               onEdit={handleOpenEditModal}
               onDelete={handleDeleteLead}
             />
           </div>
-          {/* Card view stacks naturally on mobile layout */}
-          <div className="block md:hidden">
-            <div className="grid grid-cols-1 gap-6 sm:grid-cols-2">
-              {filteredLeads.map((lead) => (
-                <LeadCard
-                  key={lead.id}
-                  lead={lead}
-                  onEdit={handleOpenEditModal}
-                  onDelete={handleDeleteLead}
-                />
-              ))}
-            </div>
-          </div>
         </>
-      ) : (
-        /* Full Grid Layout for Card view mode */
-        <div className="grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-3">
-          {filteredLeads.map((lead) => (
-            <LeadCard
-              key={lead.id}
-              lead={lead}
-              onEdit={handleOpenEditModal}
-              onDelete={handleDeleteLead}
-            />
-          ))}
-        </div>
       )}
 
       {/* Create / Edit Overlay Modal */}
@@ -238,25 +224,29 @@ export default function Leads() {
           />
 
           {/* Modal Container card */}
-          <div className="relative w-full max-w-lg transform rounded-2xl bg-white p-6 shadow-2xl dark:bg-slate-950 border border-slate-100 dark:border-slate-900 transition-all scale-100 animate-in fade-in zoom-in-95 duration-200">
-            <div className="mb-6 flex items-center justify-between">
+          <div className="relative flex w-full h-full flex-col bg-white shadow-2xl dark:bg-slate-950 transition-all scale-100 animate-in fade-in zoom-in-95 duration-200 md:h-auto md:max-w-lg md:rounded-2xl md:border md:border-slate-100 md:p-6 md:dark:border-slate-900">
+            {/* Header / Sticky on mobile */}
+            <div className="flex shrink-0 items-center justify-between border-b border-slate-100 p-4 md:mb-6 md:border-b-0 md:p-0 dark:border-slate-800">
               <h3 className="text-xl font-extrabold text-slate-905 dark:text-white">
                 {selectedLead ? 'Edit Lead' : 'Add New Lead'}
               </h3>
               <button
                 onClick={handleCloseModal}
-                className="rounded-lg p-1.5 text-slate-400 hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-slate-900 dark:hover:text-slate-200 cursor-pointer transition-colors"
+                className="flex h-11 w-11 shrink-0 items-center justify-center rounded-xl text-slate-400 transition-colors hover:bg-slate-50 hover:text-slate-700 dark:hover:bg-slate-900 dark:hover:text-slate-200"
                 aria-label="Close form dialog"
               >
-                <X className="h-5 w-5" aria-hidden="true" />
+                <X className="h-6 w-6" aria-hidden="true" />
               </button>
             </div>
 
-            <LeadForm
-              initialData={selectedLead}
-              onSubmit={handleFormSubmit}
-              onCancel={handleCloseModal}
-            />
+            {/* Scrollable Form Body */}
+            <div className="flex-1 overflow-y-auto p-4 md:overflow-visible md:p-0">
+              <LeadForm
+                initialData={selectedLead}
+                onSubmit={handleFormSubmit}
+                onCancel={handleCloseModal}
+              />
+            </div>
           </div>
         </div>
       )}

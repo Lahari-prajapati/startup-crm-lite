@@ -3,11 +3,13 @@ import { createContext, useCallback, useContext, useEffect, useMemo, useState } 
 
 /**
  * @typedef {Object} ThemeContextValue
- * @property {boolean} isDarkMode
+ * @property {boolean} isLightMode
  * @property {() => void} toggleTheme
  */
 
 export const ThemeContext = createContext(null);
+
+const STORAGE_KEY = 'crm_theme_preference';
 
 /**
  * Provides theme state and actions to the application.
@@ -16,27 +18,57 @@ export const ThemeContext = createContext(null);
  * @returns {React.JSX.Element} Theme context provider.
  */
 export function ThemeProvider({ children }) {
-  const [isDarkMode, setIsDarkMode] = useState(false);
+  // Initialize from localStorage or default to false (Dark Mode)
+  const [isLightMode, setIsLightMode] = useState(() => {
+    try {
+      const saved = localStorage.getItem(STORAGE_KEY);
+      if (saved !== null) {
+        return saved === 'light';
+      }
+      // Check system preference if no saved preference
+      if (window.matchMedia && window.matchMedia('(prefers-color-scheme: light)').matches) {
+        return true;
+      }
+    } catch (e) {
+      console.warn('Failed to read theme from localStorage', e);
+    }
+    return false; // default
+  });
 
   useEffect(() => {
-    document.documentElement.classList.toggle('dark', isDarkMode);
-  }, [isDarkMode]);
+    const root = document.documentElement;
+    if (isLightMode) {
+      root.classList.add('light');
+      root.classList.remove('dark');
+    } else {
+      root.classList.add('dark');
+      root.classList.remove('light');
+    }
+  }, [isLightMode]);
 
   /**
-   * Toggles dark mode on or off.
+   * Toggles light mode on or off.
    *
    * @returns {void}
    */
   const toggleTheme = useCallback(() => {
-    setIsDarkMode((currentValue) => !currentValue);
+    setIsLightMode((currentValue) => {
+      const newValue = !currentValue;
+      try {
+        localStorage.setItem(STORAGE_KEY, newValue ? 'light' : 'dark');
+      } catch (e) {
+        console.warn('Failed to save theme to localStorage', e);
+      }
+      return newValue;
+    });
   }, []);
 
   const value = useMemo(
     () => ({
-      isDarkMode,
+      isLightMode,
       toggleTheme,
     }),
-    [isDarkMode, toggleTheme],
+    [isLightMode, toggleTheme],
   );
 
   return <ThemeContext.Provider value={value}>{children}</ThemeContext.Provider>;
