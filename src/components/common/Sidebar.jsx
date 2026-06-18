@@ -13,15 +13,15 @@ import LightModeToggle from './LightModeToggle';
  */
 function Sidebar() {
   const navItems = [
-    { path: '/', label: 'Dashboard', icon: LayoutDashboard },
-    { path: '/leads', label: 'Leads', icon: Users },
-    { path: '/analytics', label: 'Analytics', icon: BarChart3 },
+    { path: '/', label: 'Dashboard', subLabel: 'Overview & Metrics', icon: LayoutDashboard },
+    { path: '/leads', label: 'Leads', subLabel: 'Manage Contacts', icon: Users },
+    { path: '/analytics', label: 'Analytics', subLabel: 'Growth & Funnels', icon: BarChart3 },
   ];
 
   return (
     <aside className="fixed z-40 bg-white transition-all duration-300 dark:bg-slate-950 
                       bottom-0 inset-x-0 flex h-20 flex-row items-center justify-around border-t border-slate-200/90 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]
-                      md:inset-y-0 md:left-0 md:h-screen md:w-20 md:flex-col md:justify-between md:border-r md:border-t-0 md:shadow-sm
+                      md:sticky md:top-0 md:h-screen md:w-20 md:flex-col md:justify-between md:border-r md:border-t-0 md:shadow-sm
                       lg:w-64 dark:border-slate-800">
       
       {/* Top half (Desktop/Tablet) or Hidden (Mobile) */}
@@ -52,7 +52,12 @@ function Sidebar() {
                 }
               >
                 <Icon className="h-5.5 w-5.5 shrink-0" />
-                <span className="text-[10px] font-bold lg:text-sm">{item.label}</span>
+                <div className="flex flex-col items-center lg:items-start">
+                  <span className="text-[10px] font-bold lg:text-sm">{item.label}</span>
+                  <span className="hidden text-[10px] font-medium text-slate-400 dark:text-slate-500 lg:inline">
+                    {item.subLabel}
+                  </span>
+                </div>
               </NavLink>
             );
           })}

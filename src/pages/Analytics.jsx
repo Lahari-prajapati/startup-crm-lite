@@ -65,7 +65,7 @@ export default function Analytics() {
       <StatsCards kpis={analytics.kpis} />
 
       {/* ─── Row 1: Pie Chart + Funnel ─────────────────────────────── */}
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <PieChartCard
           data={analytics.statusDistribution}
           totalLeads={analytics.totalLeads}
@@ -74,25 +74,25 @@ export default function Analytics() {
       </div>
 
       {/* ─── Row 2: Bar Chart + Line Chart ─────────────────────────── */}
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <BarChartCard data={analytics.monthlyLeads} />
         <LineChartCard data={analytics.conversionByMonth} />
       </div>
 
       {/* ─── Row 3: Revenue + Lead Sources ─────────────────────────── */}
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <RevenueChartCard data={analytics.revenueByMonth} />
         <LeadSourceChart data={analytics.leadSourceStats} />
       </div>
 
       {/* ─── Row 4: Heatmap + Top Performers ───────────────────────── */}
-      <div className="mb-6 grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="mb-6 grid grid-cols-1 gap-6 md:grid-cols-2">
         <ActivityHeatmap data={analytics.activityHeatmap} />
         <TopPerformersCard data={analytics.topPerformers} />
       </div>
 
       {/* ─── Row 5: Forecast + Sales Velocity ──────────────────────── */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-6 md:grid-cols-2">
         <ForecastCard data={analytics.forecastRevenue} />
         <SalesVelocityCard data={analytics.salesVelocity} />
       </div>
