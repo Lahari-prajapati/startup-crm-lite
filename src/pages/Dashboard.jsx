@@ -83,14 +83,21 @@ export default function Dashboard() {
         )
         .join('\n');
 
-      const blob = new Blob([headers + rows], { type: 'text/csv;charset=utf-8;' });
+      // Add UTF-8 BOM prefix for Excel compatibility
+      const blob = new Blob(['\uFEFF' + headers + rows], { type: 'text/csv;charset=utf-8;' });
       const url = URL.createObjectURL(blob);
       const link = document.createElement('a');
-      link.setAttribute('href', url);
+      link.href = url;
+      link.style.display = 'none';
       link.setAttribute('download', `crm_leads_export_${new Date().toISOString().slice(0, 10)}.csv`);
       document.body.appendChild(link);
       link.click();
-      document.body.removeChild(link);
+      
+      // Delay removal to allow browsers (especially Chrome/Firefox) to process the click and download
+      setTimeout(() => {
+        document.body.removeChild(link);
+        URL.revokeObjectURL(url);
+      }, 150);
 
       toast.success('CSV Data exported successfully!');
     } catch (error) {
